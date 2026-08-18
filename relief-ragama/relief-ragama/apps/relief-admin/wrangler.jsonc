@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ragama-relief-admin",
+  "compatibility_date": "2024-12-05",
+  "main": "./worker/server.ts",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ragama-relief-db",
+      "database_id": "1e9f4927-cc34-406b-bd6d-503f51e906f3"
+    }
+  ],
+  "vars": {
+    // Public URL of THIS worker once deployed, e.g. "https://ragama-relief-admin.<subdomain>.workers.dev"
+    // Used to build the Google OAuth redirect_uri. Update after first deploy, then redeploy.
+    "PUBLIC_URL": "https://ragama-relief-admin.workers.dev"
+  }
+  // Secrets (never put these in this file — set them as encrypted Worker
+  // secrets in the Cloudflare dashboard, under Settings > Variables and Secrets):
+  //   GOOGLE_CLIENT_ID      Google OAuth 2.0 Client ID
+  //   GOOGLE_CLIENT_SECRET  Google OAuth 2.0 Client Secret
+  //   SESSION_SECRET        Random 32+ char string used to sign session cookies
+}

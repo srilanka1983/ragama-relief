@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ragama-relief-map",
+  "compatibility_date": "2024-12-05",
+  "main": "./worker/server.ts",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ragama-relief-db",
+      "database_id": "1e9f4927-cc34-406b-bd6d-503f51e906f3"
+    }
+  ]
+}

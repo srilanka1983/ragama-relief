@@ -1,0 +1,17 @@
+{
+  "name": "relief-ragama",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:map": "npm run dev -w apps/relief-map",
+    "dev:admin": "npm run dev -w apps/relief-admin",
+    "build:map": "npm run build -w apps/relief-map",
+    "build:admin": "npm run build -w apps/relief-admin",
+    "deploy:map": "npm run deploy -w apps/relief-map",
+    "deploy:admin": "npm run deploy -w apps/relief-admin"
+  }
+}
