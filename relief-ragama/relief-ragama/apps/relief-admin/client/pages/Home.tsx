@@ -1,20 +1,39 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Plus, Table2, Users, LogOut } from "lucide-react";
+import { Plus, Table2, Users, LogOut, Trash2 } from "lucide-react";
 import { STATUS_COLORS, type Household } from "@relief/shared";
 import { session, signOut } from "../session";
 import { useI18n } from "../i18n";
 import { Button } from "../components/Button";
+import { toast } from "../components/Toast";
 
 export default function Home() {
   const { t, statusLabel } = useI18n();
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const { data: user } = useQuery({ queryKey: ["session"], queryFn: () => session.get() });
   const { data: households = [] } = useQuery<Household[]>({
     queryKey: ["households"],
     queryFn: () => fetch("/app-api/households").then((r) => r.json()),
     refetchInterval: 30_000,
   });
+  const isAdmin = user?.role === "admin";
+
+  const deleteHousehold = async (h: Household) => {
+    if (!window.confirm(t.deleteHouseholdConfirm)) return;
+    setDeletingId(h.id);
+    try {
+      const res = await fetch(`/app-api/households/${h.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error || "Delete failed");
+      toast.success(t.houseDeleted);
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const firstName = user?.name ? user.name.split(" ")[0] : null;
   const counts = households.reduce(
@@ -83,24 +102,35 @@ export default function Home() {
           </div>
         )}
         {households.map((h) => (
-          <Link
+          <div
             key={h.id}
-            to={`/entry?edit=${h.id}`}
-            className="flex items-center justify-between rounded-lg border border-border bg-raised p-3 hover:bg-inset cursor-pointer"
+            className="flex items-center justify-between gap-2 rounded-lg border border-border bg-raised p-3"
           >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-primary truncate">{h.house_number}</p>
-              <p className="text-xs text-secondary truncate">
-                {h.head_name} · {h.resident_count} {t.residents}
-              </p>
-            </div>
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white shrink-0"
-              style={{ background: STATUS_COLORS[h.status] || "#64748b" }}
-            >
-              {statusLabel(h.status)}
-            </span>
-          </Link>
+            <Link to={`/entry?edit=${h.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-2 hover:opacity-80">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-primary truncate">{h.house_number}</p>
+                <p className="text-xs text-secondary truncate">
+                  {h.head_name} · {h.resident_count} {t.residents}
+                </p>
+              </div>
+              <span
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white shrink-0"
+                style={{ background: STATUS_COLORS[h.status] || "#64748b" }}
+              >
+                {statusLabel(h.status)}
+              </span>
+            </Link>
+            {isAdmin && (
+              <button
+                onClick={() => deleteHousehold(h)}
+                disabled={deletingId === h.id}
+                className="shrink-0 text-secondary hover:text-error disabled:opacity-50"
+                title={t.delete}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            )}
+          </div>
         ))}
       </div>
     </div>
