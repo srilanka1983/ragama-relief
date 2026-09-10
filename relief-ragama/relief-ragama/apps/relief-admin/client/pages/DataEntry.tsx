@@ -8,6 +8,7 @@ import { Select } from "../components/Select";
 import { FormItem, FormLabel, FormControl, FormDescription } from "../components/Form";
 import { toast } from "../components/Toast";
 import { useI18n } from "../i18n";
+import { session } from "../session";
 
 export default function DataEntry() {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ export default function DataEntry() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
   const { t, statusLabel } = useI18n();
+
+  const { data: me } = useQuery({ queryKey: ["session"], queryFn: () => session.get() });
+  const isAdmin = me?.role === "admin";
 
   const [houseNumber, setHouseNumber] = useState("");
   const [headName, setHeadName] = useState("");
@@ -89,7 +93,12 @@ export default function DataEntry() {
         status,
         notes: notes.trim(),
       };
-      const res = await fetch(isEditing ? `/app-api/households/${editId}` : "/app-api/households", {
+      const endpoint = isEditing
+        ? isAdmin
+          ? `/app-api/households/${editId}/admin`
+          : `/app-api/households/${editId}`
+        : "/app-api/households";
+      const res = await fetch(endpoint, {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -125,9 +134,10 @@ export default function DataEntry() {
               value={houseNumber}
               onChange={(e) => setHouseNumber(e.target.value)}
               placeholder={t.houseNumberPlaceholder}
+              disabled={isEditing && !isAdmin}
             />
           </FormControl>
-          <FormDescription>{t.houseNumberHint}</FormDescription>
+          <FormDescription>{isEditing && !isAdmin ? t.houseNumberLockedHint : t.houseNumberHint}</FormDescription>
         </FormItem>
 
         <FormItem>
@@ -153,9 +163,16 @@ export default function DataEntry() {
         <FormItem>
           <FormLabel>{t.gpsLocation}</FormLabel>
           <div className="space-y-2">
-            <Button type="button" variant="secondary" onClick={captureLocation} isLoading={locating}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={captureLocation}
+              isLoading={locating}
+              disabled={isEditing && !isAdmin}
+            >
               {gpsLat != null && gpsLng != null ? t.updateGps : t.captureGps}
             </Button>
+            {isEditing && !isAdmin && <p className="text-xs text-secondary">{t.gpsLockedHint}</p>}
             {locError && <p className="text-xs text-error">{locError}</p>}
             {gpsLat != null && gpsLng != null && (
               <p className="text-xs text-secondary">
