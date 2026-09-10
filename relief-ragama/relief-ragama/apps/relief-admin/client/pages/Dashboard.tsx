@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, ArrowUpDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Download, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { STATUSES, STATUS_COLORS, type Household } from "@relief/shared";
 import { Button } from "../components/Button";
 import { Input, Textarea } from "../components/Input";
 import { Select } from "../components/Select";
 import { toast } from "../components/Toast";
 import { useI18n } from "../i18n";
+import { session } from "../session";
 
 type SortField = "house_number" | "status" | "head_name" | "updated_at";
 
@@ -21,6 +23,10 @@ export default function Dashboard() {
   const [editStatus, setEditStatus] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const { data: me } = useQuery({ queryKey: ["session"], queryFn: () => session.get() });
+  const isAdmin = me?.role === "admin";
 
   const { data: households = [] } = useQuery<Household[]>({
     queryKey: ["households"],
@@ -87,6 +93,21 @@ export default function Dashboard() {
       toast.error(e.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteHousehold = async (h: Household) => {
+    if (!window.confirm(t.deleteHouseholdConfirm)) return;
+    setDeletingId(h.id);
+    try {
+      const res = await fetch(`/app-api/households/${h.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error || "Delete failed");
+      toast.success(t.houseDeleted);
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -196,9 +217,27 @@ export default function Dashboard() {
                         </Button>
                       </div>
                     ) : (
-                      <Button variant="secondary" onClick={() => startEdit(h)} className="px-2.5 py-1 text-xs">
-                        {t.update}
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button variant="secondary" onClick={() => startEdit(h)} className="px-2.5 py-1 text-xs">
+                          {t.update}
+                        </Button>
+                        <Link to={`/entry?edit=${h.id}`} title={t.edit}>
+                          <Button variant="secondary" className="px-2 py-1 text-xs">
+                            <Pencil className="size-3.5" />
+                          </Button>
+                        </Link>
+                        {isAdmin && (
+                          <Button
+                            variant="danger"
+                            onClick={() => deleteHousehold(h)}
+                            isLoading={deletingId === h.id}
+                            className="px-2 py-1 text-xs"
+                            title={t.delete}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
