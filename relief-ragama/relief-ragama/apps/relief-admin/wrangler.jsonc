@@ -17,7 +17,7 @@
   "vars": {
     // Public URL of THIS worker once deployed, e.g. "https://ragama-relief-admin.<subdomain>.workers.dev"
     // Used to build the Google OAuth redirect_uri. Update after first deploy, then redeploy.
-    "PUBLIC_URL": "https://ragama-relief-admin.workers.dev"
+    "PUBLIC_URL": "https://ragama-relief-admin.srilanka1983.workers.dev"
   }
   // Secrets (never put these in this file — set them as encrypted Worker
   // secrets in the Cloudflare dashboard, under Settings > Variables and Secrets):
