@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS households (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   house_number TEXT NOT NULL UNIQUE,
   head_name TEXT NOT NULL DEFAULT '',
+  -- Declared INTEGER for backward compatibility with early rows, but the app
+  -- now stores a fixed size-range label here instead (e.g. "6 - 15") — SQLite's
+  -- flexible typing stores that text as-is without needing a column change.
   resident_count INTEGER NOT NULL DEFAULT 1,
   gps_lat REAL,
   gps_lng REAL,
