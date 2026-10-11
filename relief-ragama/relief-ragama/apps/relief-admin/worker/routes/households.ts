@@ -1,11 +1,26 @@
 import { Hono } from "hono";
-import { auth, getUserRole, isUniqueConstraintError, STATUSES } from "@relief/shared";
+import { auth, getUserRole, isUniqueConstraintError, STATUSES, RESIDENT_COUNT_RANGES } from "@relief/shared";
 import type { AppBindings } from "../env";
 
 const households = new Hono<AppBindings>();
 
 function isValidStatus(s: unknown): s is (typeof STATUSES)[number] {
   return typeof s === "string" && (STATUSES as readonly string[]).includes(s);
+}
+
+// Accepts one of the fixed size-range labels (e.g. "6 - 15"), or — for
+// backward compatibility with records/clients created before ranges existed
+// — a plain positive number. Returns null when the value is absent/invalid
+// so callers can fall back to a default (create) or leave it unchanged (update).
+function parseResidentCount(value: unknown): string | number | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if ((RESIDENT_COUNT_RANGES as readonly string[]).includes(trimmed)) return trimmed;
+    if (trimmed && Number.isFinite(Number(trimmed))) return Math.max(1, Number(trimmed));
+    return null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(1, value);
+  return null;
 }
 
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
@@ -30,7 +45,7 @@ households.post("/", async (c) => {
   const body = await c.req.json<Record<string, unknown>>();
   const house_number = typeof body.house_number === "string" ? body.house_number.trim() : "";
   const head_name = typeof body.head_name === "string" ? body.head_name.trim() : "";
-  const resident_count = Number.isFinite(Number(body.resident_count)) ? Math.max(1, Number(body.resident_count)) : 1;
+  const resident_count = parseResidentCount(body.resident_count) ?? RESIDENT_COUNT_RANGES[0];
   const gps_lat = typeof body.gps_lat === "number" ? body.gps_lat : null;
   const gps_lng = typeof body.gps_lng === "number" ? body.gps_lng : null;
   const status = isValidStatus(body.status) ? body.status : "Safe";
@@ -72,7 +87,7 @@ households.put("/:id", async (c) => {
   const status = isValidStatus(body.status) ? body.status : null;
   const notes = typeof body.notes === "string" ? body.notes : null;
   const head_name = typeof body.head_name === "string" ? body.head_name : null;
-  const resident_count = Number.isFinite(Number(body.resident_count)) ? Number(body.resident_count) : null;
+  const resident_count = parseResidentCount(body.resident_count);
 
   const row = await c.env.DB.prepare(
     `UPDATE households SET
@@ -104,7 +119,7 @@ households.put("/:id/admin", async (c) => {
   const body = await c.req.json<Record<string, unknown>>();
   const house_number = typeof body.house_number === "string" ? body.house_number.trim() : null;
   const head_name = typeof body.head_name === "string" ? body.head_name : null;
-  const resident_count = Number.isFinite(Number(body.resident_count)) ? Number(body.resident_count) : null;
+  const resident_count = parseResidentCount(body.resident_count);
   const gps_lat = typeof body.gps_lat === "number" ? body.gps_lat : null;
   const gps_lng = typeof body.gps_lng === "number" ? body.gps_lng : null;
   const status = isValidStatus(body.status) ? body.status : null;
