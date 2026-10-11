@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { STATUSES, type Household } from "@relief/shared";
+import { STATUSES, RESIDENT_COUNT_RANGES, type Household } from "@relief/shared";
 import { Button } from "../components/Button";
 import { Input, Textarea } from "../components/Input";
 import { Select } from "../components/Select";
@@ -22,7 +22,7 @@ export default function DataEntry() {
 
   const [houseNumber, setHouseNumber] = useState("");
   const [headName, setHeadName] = useState("");
-  const [residentCount, setResidentCount] = useState(1);
+  const [residentCount, setResidentCount] = useState<string>("");
   const [gpsLat, setGpsLat] = useState<number | null>(null);
   const [gpsLng, setGpsLng] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("Safe");
@@ -45,7 +45,7 @@ export default function DataEntry() {
       if (h) {
         setHouseNumber(h.house_number);
         setHeadName(h.head_name);
-        setResidentCount(h.resident_count);
+        setResidentCount(String(h.resident_count));
         setGpsLat(h.gps_lat);
         setGpsLng(h.gps_lng);
         setStatus(h.status);
@@ -80,6 +80,10 @@ export default function DataEntry() {
     setError("");
     if (!houseNumber.trim()) {
       setError(`${t.houseNumber} is required`);
+      return;
+    }
+    if (!residentCount) {
+      setError(`${t.residentCount} is required`);
       return;
     }
     setIsSubmitting(true);
@@ -122,9 +126,12 @@ export default function DataEntry() {
       <h1 className="text-2xl font-semibold tracking-tight text-primary mb-6">
         {isEditing ? t.editHousehold : t.addHousehold}
       </h1>
-      <form onSubmit={handleSubmit} className="max-w-lg space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="max-w-lg space-y-6 rounded-xl border border-border bg-raised p-5 sm:p-6 shadow-xs"
+      >
         {error && (
-          <div className="rounded-md border border-error bg-error-weak p-3 text-sm text-error">{error}</div>
+          <div className="rounded-lg border border-error/30 bg-error-weak p-3 text-sm text-error">{error}</div>
         )}
 
         <FormItem>
@@ -150,14 +157,28 @@ export default function DataEntry() {
         <FormItem>
           <FormLabel>{t.residentCount}</FormLabel>
           <FormControl>
-            <Input
-              type="number"
-              min={1}
-              max={50}
-              value={residentCount}
-              onChange={(e) => setResidentCount(Number(e.target.value) || 1)}
-            />
+            <div className="flex flex-wrap gap-2">
+              {RESIDENT_COUNT_RANGES.map((range) => {
+                const isSelected = residentCount === range;
+                return (
+                  <button
+                    key={range}
+                    type="button"
+                    onClick={() => setResidentCount(range)}
+                    aria-pressed={isSelected}
+                    className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+                      isSelected
+                        ? "border-accent bg-accent text-accent-contrast shadow-xs"
+                        : "border-border bg-raised text-primary hover:border-accent/40 hover:bg-inset"
+                    }`}
+                  >
+                    {range}
+                  </button>
+                );
+              })}
+            </div>
           </FormControl>
+          <FormDescription>{t.residentCountHint}</FormDescription>
         </FormItem>
 
         <FormItem>
@@ -202,7 +223,7 @@ export default function DataEntry() {
           </FormControl>
         </FormItem>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-5 border-t border-border -mx-5 sm:-mx-6 px-5 sm:px-6 pb-1">
           <Button type="submit" isLoading={isSubmitting}>
             {isEditing ? t.saveChanges : t.addHousehold}
           </Button>
