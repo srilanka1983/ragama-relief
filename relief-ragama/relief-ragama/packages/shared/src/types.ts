@@ -9,11 +9,18 @@ export const STATUSES = [
 
 export type HouseholdStatus = (typeof STATUSES)[number];
 
+// Resident count is captured as a fixed size-range category (chosen from a
+// grouped selector) rather than an exact headcount. Older records created
+// before this change may still hold a plain number — both are valid.
+export const RESIDENT_COUNT_RANGES = ["0 - 5", "6 - 15", "16 - 30", "30 - 50", "50 >"] as const;
+
+export type ResidentCountRange = (typeof RESIDENT_COUNT_RANGES)[number];
+
 export interface Household {
   id: number;
   house_number: string;
   head_name: string;
-  resident_count: number;
+  resident_count: string | number;
   gps_lat: number | null;
   gps_lng: number | null;
   status: HouseholdStatus;
